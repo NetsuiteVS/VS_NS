@@ -25,15 +25,12 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
 
         var TEST_MODE = true;
         var URL = 'https://api.github.com/repos/NetsuiteVS/VS_NS/contents/';
-        var REQUEST_HEADER = {
-            "Content-Type": "application/vnd.github.v3+json",
-            "Authorization": "token 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"
-        };
         var GITHUB_FIRM_FOLDERS = [];
         GITHUB_FIRM_FOLDERS["825746_SB3"] = "TSA/SB3/SuiteScript";
 
         var lastUploadDates = [];
         var processedRecords = 0;
+        var requestHeader;
 
         //************************** EXECUTE *****************************
 
@@ -46,6 +43,14 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
             try {
 
                 log.debug("execute", "Started");
+
+                //Get token
+                token = runtime.getCurrentScript().getParameter({ name: "custscript_tsa_token_param" });
+                log.debug("execute", "token:" + token);
+                requestHeader = {
+                    "Content-Type": "application/vnd.github.v3+json",
+                    "Authorization": "token " + token
+                };
 
                 //Get uploaded scripts
                 var customrecord_tsa_vs_github_uploadsSearchObj = search.create({
@@ -177,12 +182,12 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                 //Add SHA at file update 
                                 var apiResponseSha = https.get({
                                     url: URL + fullPath,
-                                    headers: REQUEST_HEADER
+                                    headers: requestHeader
                                 });
-                                log.debug('checkFolder', "apiResponse:" + JSON.stringify(apiResponseSha));
+                                log.debug('checkFolder', "apiResponseSha:" + JSON.stringify(apiResponseSha));
 
                                 if (apiResponseSha.code != 200) {
-                                    throw apiResponseSha.body.message;
+                                    throw "Sha:" + JSON.parse(apiResponseSha.body).message;
                                 }
 
                                 try {
@@ -193,13 +198,13 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
 
                                 var apiResponse = https.put({
                                     url: URL + fullPath,
-                                    headers: REQUEST_HEADER,
+                                    headers: requestHeader,
                                     body: JSON.stringify(bodyObj)
                                 });
                                 log.debug('checkFolder', "apiResponse:" + JSON.stringify(apiResponse));
 
                                 if (apiResponse.code != 200) {
-                                    throw apiResponse.body.message;
+                                    throw "Commit:" + JSON.parse(apiResponse.body).message;
                                 }
 
                             }
