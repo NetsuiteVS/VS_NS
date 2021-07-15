@@ -27,7 +27,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
         var URL = 'https://api.github.com/repos/NetsuiteVS/VS_NS/contents/';
         var REQUEST_HEADER = {
             "Content-Type": "application/vnd.github.v3+json",
-            "Authorization": "token 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"
+            "Authorization": "token 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"
         };
         var GITHUB_FIRM_FOLDERS = [];
         GITHUB_FIRM_FOLDERS["825746_SB3"] = "TSA/SB3/SuiteScript";
