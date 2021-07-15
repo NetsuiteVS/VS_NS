@@ -145,7 +145,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                     //Set AM before time to be able to ordering
                     var lastModifiedDateStr = lastModifiedDate.substring(6, 10) + "." + lastModifiedDate.substring(3, 5) + "." + lastModifiedDate.substring(0, 2)  + ". " +
                         (lastModifiedDate.substring(13, 14) != ":" ? "0" : "") + lastModifiedDate.substring(11);
-                    lastModifiedDateStr = lastModifiedDateStr.substring(0, 12) + lastModifiedDateStr.substring(18, 20) + lastModifiedDateStr.substring(12, 18);
+                    lastModifiedDateStr = lastModifiedDateStr.substring(0, 12) + lastModifiedDateStr.substring(18, 20) + lastModifiedDateStr.substring(12, 17);
 
                     var fullPath = folderPathPrm + "/" + fileName;
                   
