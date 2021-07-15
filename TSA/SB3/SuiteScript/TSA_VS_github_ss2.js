@@ -27,7 +27,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
         var URL = 'https://api.github.com/repos/NetsuiteVS/VS_NS/contents/';
         var REQUEST_HEADER = {
             "Content-Type": "application/vnd.github.v3+json",
-            "Authorization": "token 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"
+            "Authorization": "token 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"
         };
         var GITHUB_FIRM_FOLDERS = [];
         GITHUB_FIRM_FOLDERS["825746_SB3"] = "TSA/SB3/SuiteScript";
@@ -70,8 +70,6 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
 
                     return true;
                 });
-
-                log.debug("execute", "lastUploadDates:" + JSON.stringify(lastUploadDates));
 
                 //Get suitescript folder id
                 var folderSearchObj = search.create({
@@ -132,21 +130,23 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                         return false;
                     }
 
+                    //log.debug("checkFolder", "result:" + JSON.stringify(result));
                     var folderId = result.getValue({ name: 'internalid' });
                     var folderName = result.getValue({ name: 'name'});
                     var fileName = result.getValue({ name: 'name', join: "file" });
                     var fileId = result.getValue({ name: 'internalid', join: "file" });
                     var lastModifiedDate = result.getValue({ name: 'modified', join: "file" });
-                    //15/02/2021 3:00 AM   ->  02/15/2021 3:00 AM
-                    lastModifiedDate = lastModifiedDate.substring(3, 5) + "/" + lastModifiedDate.substring(0, 2) + lastModifiedDate.substring(5);
-                    //02/15/2021 3:00 AM   ->  2021.02.15. 03:00 AM
-                    var lastModifiedDateStr = lastModifiedDate.substring(6, 10) + "." + lastModifiedDate.substring(0, 2) + "." + lastModifiedDate.substring(3, 5) + ". " +
+                    //15/02/2021 3:00 AM   ->  2021.02.15. AM03:00
+                    //Set AM before time to be able to ordering
+                    var lastModifiedDateStr = lastModifiedDate.substring(6, 10) + "." + lastModifiedDate.substring(3, 5) + "." + lastModifiedDate.substring(0, 2)  + ". " +
                         (lastModifiedDate.substring(13, 14) != ":" ? "0" : "") + lastModifiedDate.substring(11);
-                    var fullPath = folderPathPrm + "/" + fileName;
+                    lastModifiedDateStr = lastModifiedDateStr.substring(0, 12) + lastModifiedDateStr.substring(18, 20) + lastModifiedDateStr.substring(12, 18);
 
+                    var fullPath = folderPathPrm + "/" + fileName;
+                  
                     if (folderId == folderIdPrm) {//File is in actual folder
 
-                        log.debug("checkFolder", "folderId:" + folderId + ", fileId:" + fileId + ", fullPath:" + fullPath + ", lastModifiedDateStr:" + lastModifiedDateStr + ", lastUploadDates[" + fullPath + "]:" + lastUploadDates[fullPath]);
+                        log.debug("checkFolder", "folderId:" + folderId + ", fileId:" + fileId + ", fullPath:" + fullPath + ", lastModifiedDate:" + lastModifiedDate + ", lastModifiedDateStr:" + lastModifiedDateStr + ", lastUploadDates[" + fullPath + "]:" + lastUploadDates[fullPath]);
 
                         if (!lastUploadDates[fullPath] || lastUploadDates[fullPath].length == 0 || lastUploadDates[fullPath] != lastModifiedDateStr) {
 
@@ -159,10 +159,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                             var createdRecord = record.create({ type: "customrecord_tsa_vs_github_uploads", isDynamic: false, defaultValues: null });
                             createdRecord.setValue({ fieldId: "custrecord_tsa_file_path", value: folderPathPrm, ignoreFieldChange: true });
                             createdRecord.setValue({ fieldId: "custrecord_tsa_script_name_gh", value: fileName, ignoreFieldChange: true });
-                            createdRecord.setValue({ fieldId: "custrecord_tsa_last_modified_date", value: new Date(lastModifiedDate), ignoreFieldChange: true });
                             createdRecord.setValue({ fieldId: "custrecord_tsa_last_modified_date_str", value: lastModifiedDateStr, ignoreFieldChange: true });
-                            //createdRecord.setValue({ fieldId: "custrecord_tsa_status_gh", value: , ignoreFieldChange: true });
-                            //createdRecord.setValue({ fieldId: "custrecord_tsa_error_message_gh", value: , ignoreFieldChange: true });
                             uploadRecordID = createdRecord.save({ enableSourcing: false, ignoreMandatoryFields: true });
 
                             try {
