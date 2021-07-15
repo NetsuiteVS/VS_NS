@@ -3,7 +3,7 @@
  *
  * Script Type:	Scheduled
  *
- * Author:		Viktor Schumann
+ * Author:		Viktor Schumann 
 
  * Date:        13/07/2021
  *
