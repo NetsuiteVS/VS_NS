@@ -220,7 +220,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                 var recordToUpdate = record.load({ type: "customrecord_tsa_vs_github_uploads", id: uploadRecordID, isDynamic: true });
                                 recordToUpdate.setValue({ fieldId: "custrecord_tsa_status_gh", value: (errorMessage ? "Error" : "Processed"), ignoreFieldChange: false });
                                 if (errorMessage) {
-                                    recordToUpdate.setValue({ fieldId: "custrecord_tsa_error_message_gh", value: errorMessage, ignoreFieldChange: false });
+                                    recordToUpdate.setValue({ fieldId: "custrecord_tsa_error_message_gh", value: JSON.stringify(errorMessage), ignoreFieldChange: false });
                                 }
                                 recordToUpdate.save({ enableSourcing: false, ignoreMandatoryFields: true });
                             }
