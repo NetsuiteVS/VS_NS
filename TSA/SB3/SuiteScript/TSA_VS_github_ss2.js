@@ -153,8 +153,8 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
 
                         if (fileName) {
 
-                            log.debug("checkFolder", "folderId:" + folderId + ", fileId:" + fileId + ", fullPath:" + fullPath + ", lastModifiedDate:" + lastModifiedDate);
-                            log.debug("checkFolder", "lastModifiedDateStr:" + lastModifiedDateStr + ", lastUploadDates[" + fullPath + "]:" + lastUploadDates[fullPath]);
+                            //log.debug("checkFolder", "folderId:" + folderId + ", fileId:" + fileId + ", fullPath:" + fullPath + ", lastModifiedDate:" + lastModifiedDate);
+                            //log.debug("checkFolder", "lastModifiedDateStr:" + lastModifiedDateStr + ", lastUploadDates[" + fullPath + "]:" + lastUploadDates[fullPath]);
 
                             if (!lastUploadDates[fullPath] || lastUploadDates[fullPath].length == 0 || lastUploadDates[fullPath] != lastModifiedDateStr) {
 
