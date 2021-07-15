@@ -138,7 +138,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                     //log.debug("checkFolder", "result:" + JSON.stringify(result));
                     var folderId = result.getValue({ name: 'internalid' });
                     var folderName = result.getValue({ name: 'name'});
-                    var fileName = result.getValue({ name: 'name', join: "file" });
+                    var fileName = result.getValue({ name: 'name', join: "file" }).replace(/#/g, '_HASHMARK_');
                     var fileId = result.getValue({ name: 'internalid', join: "file" });
                     var lastModifiedDate = result.getValue({ name: 'modified', join: "file" });
                     //15/02/2021 3:00 AM   ->  2021.02.15. AM03:00
@@ -151,78 +151,80 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                   
                     if (folderId == folderIdPrm) {//File is in actual folder
 
-                        log.debug("checkFolder", "folderId:" + folderId + ", fileId:" + fileId + ", fullPath:" + fullPath + ", lastModifiedDate:" + lastModifiedDate);
-                        log.debug("checkFolder", "lastModifiedDateStr:" + lastModifiedDateStr + ", lastUploadDates[" + fullPath + "]:" + lastUploadDates[fullPath]);
+                        if (fileName) {
 
-                        if (!lastUploadDates[fullPath] || lastUploadDates[fullPath].length == 0 || lastUploadDates[fullPath] != lastModifiedDateStr) {
+                            log.debug("checkFolder", "folderId:" + folderId + ", fileId:" + fileId + ", fullPath:" + fullPath + ", lastModifiedDate:" + lastModifiedDate);
+                            log.debug("checkFolder", "lastModifiedDateStr:" + lastModifiedDateStr + ", lastUploadDates[" + fullPath + "]:" + lastUploadDates[fullPath]);
 
-                            log.debug("checkFolder", "Upload neccessary");
+                            if (!lastUploadDates[fullPath] || lastUploadDates[fullPath].length == 0 || lastUploadDates[fullPath] != lastModifiedDateStr) {
 
-                            var uploadRecordID;
-                            var errorMessage;
+                                log.debug("checkFolder", "Upload neccessary");
 
-                            //Create new record if it doesn't exitst
-                            var createdRecord = record.create({ type: "customrecord_tsa_vs_github_uploads", isDynamic: false, defaultValues: null });
-                            createdRecord.setValue({ fieldId: "custrecord_tsa_file_path", value: folderPathPrm, ignoreFieldChange: true });
-                            createdRecord.setValue({ fieldId: "custrecord_tsa_script_name_gh", value: fileName, ignoreFieldChange: true });
-                            createdRecord.setValue({ fieldId: "custrecord_tsa_last_modified_date_str", value: lastModifiedDateStr, ignoreFieldChange: true });
-                            uploadRecordID = createdRecord.save({ enableSourcing: false, ignoreMandatoryFields: true });
+                                var uploadRecordID;
+                                var errorMessage;
 
-                            try {
-                                //Get sha
-                                log.debug("checkFolder", "url:" + URL + fullPath);
-
-                                var fileObj = file.load({ id: fileId });
-                                var fileObjBase64 = encode.convert({ string: fileObj.getContents(), inputEncoding: encode.Encoding.UTF_8, outputEncoding: encode.Encoding.BASE_64 });
-
-                                var bodyObj = {
-                                    "message": "commit message",
-                                    "content": fileObjBase64
-                                };
-
-                                //Add SHA at file update 
-                                var apiResponseSha = https.get({
-                                    url: URL + fullPath,
-                                    headers: requestHeader
-                                });
-
-                                if (apiResponseSha.code != 200 && apiResponseSha.code != 404) {
-                                    log.debug('checkFolder', "apiResponseSha:" + JSON.stringify(apiResponseSha));
-                                    throw "Sha:" + JSON.parse(apiResponseSha.body).message;
-                                }
+                                //Create new record if it doesn't exitst
+                                var createdRecord = record.create({ type: "customrecord_tsa_vs_github_uploads", isDynamic: false, defaultValues: null });
+                                createdRecord.setValue({ fieldId: "custrecord_tsa_file_path", value: folderPathPrm, ignoreFieldChange: true });
+                                createdRecord.setValue({ fieldId: "custrecord_tsa_script_name_gh", value: fileName, ignoreFieldChange: true });
+                                createdRecord.setValue({ fieldId: "custrecord_tsa_last_modified_date_str", value: lastModifiedDateStr, ignoreFieldChange: true });
+                                uploadRecordID = createdRecord.save({ enableSourcing: false, ignoreMandatoryFields: true });
 
                                 try {
-                                    bodyObj.sha = JSON.parse(apiResponseSha.body).sha;
-                                } catch (e) { }
+                                    //Get sha
+                                    log.debug("checkFolder", "url:" + URL + fullPath);
 
-                                //log.debug("checkFolder", "bodyObj:" + JSON.stringify(bodyObj));
+                                    var fileObj = file.load({ id: fileId });
+                                    var fileObjBase64 = encode.convert({ string: fileObj.getContents(), inputEncoding: encode.Encoding.UTF_8, outputEncoding: encode.Encoding.BASE_64 });
 
-                                var apiResponse = https.put({
-                                    url: URL + fullPath,
-                                    headers: requestHeader,
-                                    body: JSON.stringify(bodyObj)
-                                });
+                                    var bodyObj = {
+                                        "message": "commit message",
+                                        "content": fileObjBase64
+                                    };
 
-                                if (apiResponse.code != 200 && apiResponse.code != 201) {
-                                    log.debug('checkFolder', "apiResponse:" + JSON.stringify(apiResponse));
-                                    throw "Commit:" + JSON.parse(apiResponse.body).message;
+                                    //Add SHA at file update 
+                                    var apiResponseSha = https.get({
+                                        url: URL + fullPath,
+                                        headers: requestHeader
+                                    });
+
+                                    if (apiResponseSha.code != 200 && apiResponseSha.code != 404) {
+                                        log.debug('checkFolder', "apiResponseSha:" + JSON.stringify(apiResponseSha));
+                                        throw "Sha:" + JSON.parse(apiResponseSha.body).message;
+                                    }
+
+                                    try {
+                                        bodyObj.sha = JSON.parse(apiResponseSha.body).sha;
+                                    } catch (e) { }
+
+                                    //log.debug("checkFolder", "bodyObj:" + JSON.stringify(bodyObj));
+
+                                    var apiResponse = https.put({
+                                        url: URL + fullPath,
+                                        headers: requestHeader,
+                                        body: JSON.stringify(bodyObj)
+                                    });
+
+                                    if (apiResponse.code != 200 && apiResponse.code != 201) {
+                                        log.debug('checkFolder', "apiResponse:" + JSON.stringify(apiResponse));
+                                        throw "Commit:" + JSON.parse(apiResponse.body).message;
+                                    }
+
+                                }
+                                catch (e) {
+                                    log.debug("checkFolder(api call) - ERROR", e);
+                                    errorMessage = e;
                                 }
 
+                                //Update new record status
+                                var recordToUpdate = record.load({ type: "customrecord_tsa_vs_github_uploads", id: uploadRecordID, isDynamic: true });
+                                recordToUpdate.setValue({ fieldId: "custrecord_tsa_status_gh", value: (errorMessage ? "Error" : "Processed"), ignoreFieldChange: false });
+                                if (errorMessage) {
+                                    recordToUpdate.setValue({ fieldId: "custrecord_tsa_error_message_gh", value: errorMessage, ignoreFieldChange: false });
+                                }
+                                recordToUpdate.save({ enableSourcing: false, ignoreMandatoryFields: true });
                             }
-                            catch (e) {
-                                log.debug("checkFolder(api call) - ERROR", e);
-                                errorMessage = e;
-                            }
-
-                            //Update new record status
-                            var recordToUpdate = record.load({ type: "customrecord_tsa_vs_github_uploads", id: uploadRecordID, isDynamic: true });
-                            recordToUpdate.setValue({ fieldId: "custrecord_tsa_status_gh", value: (errorMessage ? "Error" : "Processed"), ignoreFieldChange: false });
-                            if (errorMessage) {
-                                recordToUpdate.setValue({ fieldId: "custrecord_tsa_error_message_gh", value: errorMessage, ignoreFieldChange: false });
-                            }
-                            recordToUpdate.save({ enableSourcing: false, ignoreMandatoryFields: true });
                         }
-
                     }
                     else {//Get subfolders
                         if (!subfolders.hasOwnProperty(folderId)) {
