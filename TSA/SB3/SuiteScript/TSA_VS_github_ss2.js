@@ -252,8 +252,6 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
             }
             finally {
             }
-
-            log.debug("checkFolder", "Finished");
         }
         
         return {
