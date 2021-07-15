@@ -27,7 +27,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
         var URL = 'https://api.github.com/repos/NetsuiteVS/VS_NS/contents/';
         var REQUEST_HEADER = {
             "Content-Type": "application/vnd.github.v3+json",
-            "Authorization": "token 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"
+            "Authorization": "token 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"
         };
         var GITHUB_FIRM_FOLDERS = [];
         GITHUB_FIRM_FOLDERS["825746_SB3"] = "TSA/SB3/SuiteScript";
@@ -166,15 +166,8 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                 //Get sha
                                 log.debug("checkFolder", "url:" + URL + fullPath);
 
-                                var apiResponseSha = https.get({
-                                    url: URL + fullPath,
-                                    headers: REQUEST_HEADER
-                                });
-
                                 var fileObj = file.load({ id: fileId });
-                                log.debug("checkFolder", "fileObj:" + JSON.stringify(fileObj.getContents()));
                                 var fileObjBase64 = encode.convert({ string: fileObj.getContents(), inputEncoding: encode.Encoding.UTF_8, outputEncoding: encode.Encoding.BASE_64 });
-                                log.debug("checkFolder", "fileObjBase64:" + JSON.stringify(fileObjBase64));
 
                                 var bodyObj = {
                                     "message": "commit message",
@@ -182,18 +175,32 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                 };
 
                                 //Add SHA at file update 
+                                var apiResponseSha = https.get({
+                                    url: URL + fullPath,
+                                    headers: REQUEST_HEADER
+                                });
+                                log.debug('checkFolder', "apiResponse:" + JSON.stringify(apiResponseSha));
+
+                                if (apiResponseSha.code != 200) {
+                                    throw apiResponseSha.body.message;
+                                }
+
                                 try {
                                     bodyObj.sha = JSON.parse(apiResponseSha.body).sha;
                                 } catch (e) { }
 
-                                log.debug("checkFolder", "bodyObj:" + JSON.stringify(bodyObj));
+                                //log.debug("checkFolder", "bodyObj:" + JSON.stringify(bodyObj));
 
                                 var apiResponse = https.put({
                                     url: URL + fullPath,
                                     headers: REQUEST_HEADER,
                                     body: JSON.stringify(bodyObj)
                                 });
-                                log.debug('apiResponse', JSON.stringify(apiResponse));
+                                log.debug('checkFolder', "apiResponse:" + JSON.stringify(apiResponse));
+
+                                if (apiResponse.code != 200) {
+                                    throw apiResponse.body.message;
+                                }
 
                             }
                             catch (e) {
