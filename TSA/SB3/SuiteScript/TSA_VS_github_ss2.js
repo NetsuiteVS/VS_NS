@@ -69,7 +69,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                     var scriptName = result.getValue({ name: 'custrecord_tsa_script_name_gh', summary: "GROUP" });
                     var date = result.getValue({ name: 'custrecord_tsa_last_modified_date_str', summary: "MAX" });
 
-                    log.debug("checkFolder", "path:" + path + ", scriptName:" + scriptName + ", date:" + date);
+                    //log.debug("checkFolder", "path:" + path + ", scriptName:" + scriptName + ", date:" + date);
 
                     lastUploadDates[path + "/" + scriptName] = date;
 
@@ -172,7 +172,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
 
                                 try {
                                     //Get sha
-                                    log.debug("checkFolder", "url:" + URL + fullPath);
+                                    //log.debug("checkFolder", "url:" + URL + fullPath);
 
                                     var fileObj = file.load({ id: fileId });
                                     var fileObjBase64 = encode.convert({ string: fileObj.getContents(), inputEncoding: encode.Encoding.UTF_8, outputEncoding: encode.Encoding.BASE_64 });
