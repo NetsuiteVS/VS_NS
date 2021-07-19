@@ -110,11 +110,13 @@
                 var mailContents = {};
                 var author = 17677;//Netsuite System user. SB3: 17677, PRODUCTION:21053
                 //var emailSubject = (isNormalApprovals ? "" : "HOD Review. ") + "Transaction is waiting for approve.";
-                var emailSubject = (isNormalApprovals ? "Netsuite - Summary of Transactions are waiting for approval." : "Netsuite - Summary of Transactions are waiting for HOD Review.");
-
+                var emailSubject = (isNormalApprovals ? "Netsuite - IFAS Transactions Pending Your Approval" : "Netsuite - IFAS Transactions Pending Your Approval (HOD Review)");
+				var HOD_review = (isNormalApprovals ? "" : "(HOD Review)");
+              
                 var emailBody = "Dear Budget Holder,<br/><br/>" +
-                    'This is a system generated email listing transactions waiting for approval or HOD review.<br/>' +
+                    'This is a system generated email listing transactions awaiting your approval or acceptance'+HOD_review+'.<br/>' +
                     'Please click on the View link to navigate to the transaction in Netsuite.<br/><br/><br/>' +
+                    'Alternatively, this list of transactions is also available in your Netsuite homepage for approval or acceptance.<br/><br/><br/>' +
                     '<font size="2" face="Courier New" >' +
                     '<table> <tr> <th style="padding-right:20px">View</th> <th style="padding-right:20px">Type</th> <th style="padding-right:20px">Date</th><th style="padding-right:20px">Document Nr</th> <th style="padding-right:20px">Name</th> <th style="padding-right:20px">Memo</th><th style="padding-right:20px">Amount</th> <th style="padding-right:20px">Status</th> </tr>';
 
