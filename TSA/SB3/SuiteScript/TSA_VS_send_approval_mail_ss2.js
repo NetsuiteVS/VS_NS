@@ -16,14 +16,20 @@
  * @NScriptType ScheduledScript
  * @NModuleScope SameAccount
 **/
-    define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', 'N/email', 'N/url', 'N/https'],
+    define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', 'N/email', 'N/url', 'N/https','N/format/i18n'],
     /**
      * @param {record} record
      * @param {search} search
      */
 
-        function (record, search, render, format, runtime, task, email, url, https) {
+        function (record, search, render, format, runtime, task, email, url, https, formati) {
 
+            function makeItNumber(myNumber){
+              	log.debug("","number="+myNumber);
+                var myFormat = formati.getNumberFormatter({});
+                var newNumber = myFormat.format({number: myNumber});
+                return newNumber;
+            }      		
             /**
               * @param {Object} scriptContext
               * @param {string} scriptContext.type
@@ -118,7 +124,14 @@
                     'Please click on the View link to navigate to the transaction in Netsuite.<br/><br/><br/>' +
                     'Alternatively, this list of transactions is also available in your Netsuite homepage for approval or acceptance.<br/><br/><br/>' +
                     '<font size="2" face="Courier New" >' +
-                    '<table> <tr> <th style="padding-right:20px">View</th> <th style="padding-right:20px">Type</th> <th style="padding-right:20px">Date</th><th style="padding-right:20px">Document Nr</th> <th style="padding-right:20px">Name</th> <th style="padding-right:20px">Memo</th><th style="padding-right:20px">Amount</th> <th style="padding-right:20px">Status</th> </tr>';
+                    '<table> <tr> <th style="padding-right:20px" colspan="3">View</th>'+
+					'<th style="padding-right:20px" colspan="3">Type</th>'+
+					'<th style="padding-right:20px" colspan="3">Date</th>'+
+					'<th style="padding-right:20px" colspan="3">Document Nr</th>'+
+					'<th style="padding-right:20px" colspan="3">Name</th>'+ 
+					'<th style="padding-right:20px" colspan="3">Memo</th>'+
+					'<th style="padding-right:20px;white-space:nowrap" colspan="4">Amount</th>'+
+					'<th style="padding-right:20px" colspan="3">Status</th> </tr>';
 
                 //Get transaction list per user
                 Object.keys(mailToUserList).forEach(function (key) {
@@ -130,6 +143,7 @@
                     var entity = mailToUserList[key].entity;
                     var memo = mailToUserList[key].memo;
                     var total = mailToUserList[key].total;
+                  	var currency = mailToUserList[key].currency;
                     var status = mailToUserList[key].status;
                     var userIds = mailToUserList[key].userIds;
                     log.debug("execute", "internalId=" + internalId + ", tranId=" + tranId + ", type=" + type + ", trandate=" + trandate + ", entity=" + entity + ", memo=" + memo);
@@ -145,9 +159,14 @@
                             mailContents[userIds[i]] = emailBody;
                         }
 
-                        mailContents[userIds[i]] += '<tr> <td style="padding-right:20px">' + txnLink + '</td> <td style="padding-right:20px">' + type + '</td> <td style="padding-right:20px">' + trandate + '</td> <td style="padding-right:20px">' +
-                            tranId + '</td> <td style="padding-right:20px">' + (entity == "- None -" ? "" : entity) + '</td> <td style="padding-right:20px">' + (memo ? memo : "") + '</td> <td style="padding-right:20px">' +
-                            total + '</td> <td style="padding-right:20px">' + status + '</td> </tr>';
+                        mailContents[userIds[i]] += '<tr> <td style="padding-right:20px" colspan="3">'+txnLink+ 
+                          							'</td> <td style="padding-right:20px" colspan="3">' + type + 
+                          							'</td> <td style="padding-right:20px" colspan="3">' + trandate + 
+                          							'</td> <td style="padding-right:20px" colspan="3">' + tranId + 
+                          							'</td> <td style="padding-right:20px" colspan="3">' + (entity == "- None -" ? "" : entity) + 
+                          							'</td> <td style="padding-right:20px" colspan="3">' + (memo ? memo : "") + 
+                          							'</td> <td style="padding-right:20px;white-space:nowrap;text-align:right" colspan="4">'+makeItNumber(parseFloat(total))+'&nbsp;'+currency+
+                          							'</td> <td style="padding-right:20px" colspan="3">'+status+'</td> </tr>';
                         //log.debug("sendMail", 'i= ' + i + ", userIds[i]=" + userIds[i] + ", mailContents[userIds[i]]=" + mailContents[userIds[i]]);
                     }
                 });
