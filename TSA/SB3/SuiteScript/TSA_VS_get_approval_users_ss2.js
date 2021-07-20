@@ -16,14 +16,22 @@
  * @NScriptType ScheduledScript
  * @NModuleScope SameAccount
 **/
-define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', 'N/email', 'N/url', 'N/https'],
+define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', 'N/email', 'N/url', 'N/https','N/format/i18n'],
 /**
     * @param {record} record
     * @param {search} search
     */
 
-    function (record, search, render, format, runtime, task, email, url, https) {
+    function (record, search, render, format, runtime, task, email, url, https, formati) {
 
+        function makeItCurrency(myNumber,currency1){
+            var myFormat = formati.getCurrencyFormatter({currency: currency1});
+            var newCur = myFormat.format({
+                    number: myNumber
+                    });
+
+            return newCur;
+        }
         /**
             * @param {Object} scriptContext
             * @param {string} scriptContext.type
@@ -83,7 +91,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
         var rescheduled = false;
         
         function execute(scriptContext) {
-            try {
+  //          try {
 
                 log.debug("get_approval_users::execute", "Started");
 
@@ -150,6 +158,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                             search.createColumn({ name: "entity", summary: "GROUP" }),
                             search.createColumn({ name: "memo", summary: "GROUP" }),
                             search.createColumn({ name: "fxamount", summary: "MAX" }),
+                          	search.createColumn({ name: "currency", summary: "GROUP" }),
                             search.createColumn({ name: "status", summary: "GROUP" }),
                           
                             search.createColumn({ name: "custbody_tsa_iouemp", summary: "GROUP" }),
@@ -224,6 +233,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                             trandate: JSON.stringify(result.getValue({ name: 'trandate', summary: "GROUP" })).split("T")[0].replace(/"/g, ''),
                             entity: name, //result.getText({ name: 'entity', summary: "GROUP" }),
                             memo: memo,
+                          	currency: result.getText({ name: 'currency', summary: "GROUP" }),
                             total: Math.abs(result.getValue({ name: 'fxamount', summary: "MAX" })),
                             status: result.getText({ name: 'status', summary: "GROUP" })
                         };
@@ -256,6 +266,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                         entity: txn.entity,
                                         memo: txn.memo,
                                         total: txn.total,
+                                      	currency: txn.currency,
                                         status: txn.mixedStatus
                                     };
                                 }
@@ -270,6 +281,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                         entity: txn.entity,
                                         memo: txn.memo,
                                         total: txn.total,
+                                      	currency: txn.currency,
                                         status: txn.mixedStatus
                                     };
                                 }
@@ -341,13 +353,13 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                 }
 
                 logGovernanceMonitoring("Finished");
-            }
+/*            }
             catch (e) {
                 log.error("get_approval_users::execute - ERROR", e.message);
             }
             finally {
             }
-
+*/
         }
 
         function IsSendMailAlreadyRunning() {
