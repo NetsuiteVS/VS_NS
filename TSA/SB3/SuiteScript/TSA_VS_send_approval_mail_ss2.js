@@ -120,8 +120,8 @@
 				var HOD_review = (isNormalApprovals ? "" : "(HOD Review)");
               
                 var emailBody = "Dear Budget Holder,<br/><br/>" +
-                    'This is a system generated email listing transactions awaiting your approval or acceptance'+HOD_review+'.<br/>' +
-                    'Please click on the View link to navigate to the transaction in Netsuite.<br/><br/><br/>' +
+                    'This is a system generated email listing transactions awaiting your approval or acceptance'+HOD_review+'.<br/><br/>' +
+                    'Please click on the View link to navigate to the transaction in Netsuite.<br/><br/>' +
                     'Alternatively, this list of transactions is also available in your Netsuite homepage for approval or acceptance.<br/><br/><br/>' +
                     '<font size="2" face="Courier New" >' +
                     '<table> <tr> <th style="padding-right:20px" colspan="3">View</th>'+
