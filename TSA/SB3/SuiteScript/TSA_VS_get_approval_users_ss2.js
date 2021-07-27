@@ -228,7 +228,8 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                         var txn = {
                             type: result.getText({ name: 'type', summary: "GROUP" }),
                             typeid: txnType,
-                            tranId: (txnType == "vendpymt" ? result.getValue({ name: 'transactionnumber', summary: "GROUP" }) : result.getValue({ name: 'tranid', summary: "GROUP"})),
+                            tranId: result.getValue({ name: 'transactionnumber', summary: "GROUP" }),
+                            documentId: result.getValue({ name: 'tranid', summary: "GROUP"}),
                             internalId: internalid,
                             trandate: JSON.stringify(result.getValue({ name: 'trandate', summary: "GROUP" })).split("T")[0].replace(/"/g, ''),
                             entity: name, //result.getText({ name: 'entity', summary: "GROUP" }),
@@ -259,6 +260,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                     log.debug("get_approval_users::execute", "response.normalApproval=" + response.normalApproval);
                                     approvals.normalApproval[txn.internalId] = {
                                         tranId: txn.tranId,
+                                      	documentId: txn.tranId,
                                         userIds: response.normalApproval,
                                         type: txn.type,
                                         internalId: txn.internalid,
@@ -274,6 +276,7 @@ define(['N/record', 'N/search', 'N/render', 'N/format', 'N/runtime', 'N/task', '
                                     log.debug("get_approval_users::execute", "response.hodApproval=" + response.hodApproval);
                                     approvals.hodApproval[txn.internalId] = {
                                         tranId: txn.tranId,
+                                      	documentId: txn.tranId,
                                         userIds: response.hodApproval,
                                         type: txn.type,
                                         internalId: txn.internalid,
