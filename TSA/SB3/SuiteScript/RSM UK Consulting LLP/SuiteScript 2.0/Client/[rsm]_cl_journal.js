@@ -93,6 +93,7 @@ function(record, vs_lib, translation, search, log) {
         //custcol_unit_type
         //custcol_tsa_acc_iu_pay_type
         var account = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "account" });
+      	var unit = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "class" });
         var account_display = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "account_display" });
         var a = account_display.substring(0, 1);
         var unit_type = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "custcol_unit_type" });
@@ -127,6 +128,26 @@ function(record, vs_lib, translation, search, log) {
         if (!tsa_rel_party) {
             alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_MISSING_RELPARTY', locale: translation.Locale.CURRENT })());
             return false;
+        }
+      
+        //Check RelParty for Unit
+        var customrecord_cseg_tsa_relatedparSearchObj = search.create({
+          type: "customrecord_cseg_tsa_relatedpar",
+          filters:  [ ["internalid","anyof",tsa_rel_party],"AND",
+                     ["custrecord_cseg_tsa_relatedpar_n101","anyof",unit]
+                    ],
+          columns:  [
+            search.createColumn({ name: "internalid", label: "internalid" })
+          ]
+        });
+        var rp_unit_ok=false;
+        customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+          console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+          rp_unit_ok=true;
+        });
+        if(!rp_unit_ok)	{
+          	alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+          	return false;
         }
 
         //Check if Related Party Record is not complete for InterUnit usage
