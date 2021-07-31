@@ -101,6 +101,30 @@ function validateLine(context){
     window.nlapiCancelLineItem("line");
     window.nlapiSelectLineItem("line",1);              
   }
+  
+  var tsa_rel_party = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "custcol_cseg_tsa_relatedpar" });
+  var unit = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "class" });
+  
+  //Check RelParty for Unit
+  var customrecord_cseg_tsa_relatedparSearchObj = search.create({
+    type: "customrecord_cseg_tsa_relatedpar",
+    filters:  [ ["internalid","anyof",tsa_rel_party],"AND",
+               ["custrecord_cseg_tsa_relatedpar_n101","anyof",unit]
+              ],
+    columns:  [
+      search.createColumn({ name: "internalid", label: "internalid" })
+    ]
+  });
+  var rp_unit_ok=false;
+  customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+    console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+    rp_unit_ok=true;
+  });
+  if(!rp_unit_ok)	{
+    alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+    return false;
+  }
+  
   return true;
 }
   
