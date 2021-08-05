@@ -138,6 +138,8 @@
 
                     var type = mailToUserList[key].type;
                     var tranId = mailToUserList[key].tranId;
+                  	var documentId = mailToUserList[key].documentId;
+                  	if(type=="Supplier invoice" || type=="Supplier invoice payment"){tranId=documentId;}
                     var internalId = key;                    
                     var trandate = mailToUserList[key].trandate;
                     var entity = mailToUserList[key].entity;
