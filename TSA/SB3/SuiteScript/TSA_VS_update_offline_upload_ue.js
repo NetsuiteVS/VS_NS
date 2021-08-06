@@ -17,8 +17,8 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/url', 'N/record', 'N/log', 'N/search', 'N/runtime', 'N/http', 'N/https', 'N/translation', 'N/file'],
-    function (url, record, log, search, runtime, http, https, translation, file) {
+define(['N/url', 'N/record', 'N/log', 'N/search', 'N/runtime', 'N/http', 'N/https', 'N/translation', 'N/file', 'N/url'],
+    function (url, record, log, search, runtime, http, https, translation, file, url) {
 
         //#region ******************************  BEFORE SUBMIT  ************************************* 
 
@@ -305,6 +305,49 @@ You cannot add a project activity code without a project.
                               rp_unit_ok=true;
 							});
 							if(!rp_unit_ok) throw new Error("Related Party is not available for the selected Unit.");
+
+						// ******** Check Offsetting Related party and Unit *********
+							  //Call suitelet - Unit lookup
+							  var suitletURL = url.resolveScript({ scriptId:'customscript_tsa_unit_rel_party_lookup', deploymentId:'customdeploy_tsa_unit_rel_party_lookup', returnExternalUrl:true, 
+																  params: { 'custscript_search_type_prm':"unit", 'custscript_id_prm':tsa_rel_party } 
+																 });
+							  var response = https.get({ url: suitletURL });
+							  log.debug("","Unit_lookup_Call response: " + JSON.stringify(response));
+							  log.debug("","Unit_lookup_Call returned id: " + response.body);
+							  var offsetting_unit=parseInt(response.body);
+
+							  //Call suitelet - Related Party lookup
+							  var suitletURL = url.resolveScript({ scriptId: 'customscript_tsa_unit_rel_party_lookup', deploymentId: 'customdeploy_tsa_unit_rel_party_lookup',	returnExternalUrl: true, 
+																  params: { 'custscript_search_type_prm': "relparty", 'custscript_id_prm': unit }
+																 });
+							  var response = https.get({ url: suitletURL });
+							  log.debug("","Related_Party_lookup_Call response: " + JSON.stringify(response));
+							  log.debug("","Related_Party_lookup_Call returned id: " + response.body);
+							  var offsetting_relparty=parseInt(response.body);
+							  
+							  //Check RelParty for Unit
+							  if(offsetting_relparty && offsetting_unit){
+								  var customrecord_cseg_tsa_relatedparSearchObj = search.create({
+									type: "customrecord_cseg_tsa_relatedpar",
+									filters:  [ ["internalid","anyof",offsetting_relparty],"AND",
+											   ["custrecord_cseg_tsa_relatedpar_n101","anyof",offsetting_unit]
+											  ],
+									columns:  [
+									  search.createColumn({ name: "internalid", label: "internalid" })
+									]
+								  });
+								  var rp_unit_ok=false;
+								  customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+									log.debug("","related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+									rp_unit_ok=true;
+								  });
+								  if(!rp_unit_ok){
+									  throw new Error(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_OFFS_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+									  return false;
+								  }
+							  }
+							  
+						// ******** End - Check Offsetting Related party and Unit *********
                   
                   			//Check RelParty for default bank and cash accounts
 							var customrecord_cseg_tsa_relatedparSearchObj = search.create({
