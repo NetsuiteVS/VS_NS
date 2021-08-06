@@ -23,8 +23,8 @@
  * @NScriptType ClientScript
  * @NModuleScope SameAccount
  */
-define(['N/record', '../../../vs_lib', 'N/translation', 'N/search', 'N/log'], 			
-function(record, vs_lib, translation, search, log) {
+define(['N/record', '../../../vs_lib', 'N/translation', 'N/search', 'N/log', 'N/url', 'N/https'], 			
+function(record, vs_lib, translation, search, log, url, https) {
 	
 	'use strict';
 
@@ -150,14 +150,14 @@ function(record, vs_lib, translation, search, log) {
           	return false;
         }
 
-  // ******** Check Offsetting Related party and Unit *********
+// ******** Check Offsetting Related party and Unit *********
       //Call suitelet - Unit lookup
       var suitletURL = url.resolveScript({ scriptId:'customscript_tsa_unit_rel_party_lookup', deploymentId:'customdeploy_tsa_unit_rel_party_lookup', returnExternalUrl:true, 
                                           params: { 'custscript_search_type_prm':"unit", 'custscript_id_prm':tsa_rel_party } 
                                          });
       var response = https.get({ url: suitletURL });
-      log.debug("Related_Party_lookup_Call", "response: " + JSON.stringify(response));
-      log.debug("Related_Party_lookup_Call", "returned id: " + response.body);
+      console.log("Unit_lookup_Call response: " + JSON.stringify(response));
+      console.log("Unit_lookup_Call returned id: " + response.body);
       var offsetting_unit=parseInt(response.body);
 
       //Call suitelet - Related Party lookup
@@ -165,8 +165,8 @@ function(record, vs_lib, translation, search, log) {
                                           params: { 'custscript_search_type_prm': "relparty", 'custscript_id_prm': unit }
                                          });
       var response = https.get({ url: suitletURL });
-      log.debug("Related_Party_lookup_Call", "response: " + JSON.stringify(response));
-      log.debug("Related_Party_lookup_Call", "returned id: " + response.body);
+      console.log("Related_Party_lookup_Call response: " + JSON.stringify(response));
+      console.log("Related_Party_lookup_Call returned id: " + response.body);
       var offsetting_relparty=parseInt(response.body);
       
       //Check RelParty for Unit
