@@ -106,13 +106,13 @@ function validateLine(context){
   var unit = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "class" });
   
   //Check RelParty for Unit
-  var customrecord_cseg_tsa_relatedparSearchObj = search.create({
+  var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
     type: "customrecord_cseg_tsa_relatedpar",
     filters:  [ ["internalid","anyof",tsa_rel_party],"AND",
                ["custrecord_cseg_tsa_relatedpar_n101","anyof",unit]
               ],
     columns:  [
-      search.createColumn({ name: "internalid", label: "internalid" })
+      Search.createColumn({ name: "internalid", label: "internalid" })
     ]
   });
   var rp_unit_ok=false;
@@ -146,13 +146,13 @@ function validateLine(context){
       
       //Check RelParty for Unit
       if(offsetting_relparty && offsetting_unit){
-          var customrecord_cseg_tsa_relatedparSearchObj = search.create({
+          var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
             type: "customrecord_cseg_tsa_relatedpar",
             filters:  [ ["internalid","anyof",offsetting_relparty],"AND",
                        ["custrecord_cseg_tsa_relatedpar_n101","anyof",offsetting_unit]
                       ],
             columns:  [
-              search.createColumn({ name: "internalid", label: "internalid" })
+              Search.createColumn({ name: "internalid", label: "internalid" })
             ]
           });
           var rp_unit_ok=false;
