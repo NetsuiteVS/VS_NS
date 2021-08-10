@@ -102,73 +102,6 @@ function validateLine(context){
     window.nlapiSelectLineItem("line",1);              
   }
   
-  var tsa_rel_party = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "custcol_cseg_tsa_relatedpar" });
-  var unit = currentRecord.getCurrentSublistValue({ sublistId: "line", fieldId: "class" });
-  
-  //Check RelParty for Unit
-  var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
-    type: "customrecord_cseg_tsa_relatedpar",
-    filters:  [ ["internalid","anyof",tsa_rel_party],"AND",
-               ["custrecord_cseg_tsa_relatedpar_n101","anyof",unit]
-              ],
-    columns:  [
-      Search.createColumn({ name: "internalid", label: "internalid" })
-    ]
-  });
-  var rp_unit_ok=false;
-  customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
-    console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
-    rp_unit_ok=true;
-  });
-  if(!rp_unit_ok)	{
-    alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
-    return false;
-  }
-  
-// ******** Check Offsetting Related party and Unit *********
-      //Call suitelet - Unit lookup
-      var suitletURL = url.resolveScript({ scriptId:'customscript_tsa_unit_rel_party_lookup', deploymentId:'customdeploy_tsa_unit_rel_party_lookup', returnExternalUrl:true, 
-                                          params: { 'custscript_search_type_prm':"unit", 'custscript_id_prm':tsa_rel_party } 
-                                         });
-      var response = https.get({ url: suitletURL });
-      console.log("Unit_lookup_Call response: " + JSON.stringify(response));
-      console.log("Unit_lookup_Call returned id: " + response.body);
-      var offsetting_unit=parseInt(response.body);
-
-      //Call suitelet - Related Party lookup
-      var suitletURL = url.resolveScript({ scriptId: 'customscript_tsa_unit_rel_party_lookup', deploymentId: 'customdeploy_tsa_unit_rel_party_lookup',	returnExternalUrl: true, 
-                                          params: { 'custscript_search_type_prm': "relparty", 'custscript_id_prm': unit }
-                                         });
-      var response = https.get({ url: suitletURL });
-      console.log("Related_Party_lookup_Call response: " + JSON.stringify(response));
-      console.log("Related_Party_lookup_Call returned id: " + response.body);
-      var offsetting_relparty=parseInt(response.body);
-      
-      //Check RelParty for Unit
-      if(offsetting_relparty && offsetting_unit){
-          var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
-            type: "customrecord_cseg_tsa_relatedpar",
-            filters:  [ ["internalid","anyof",offsetting_relparty],"AND",
-                       ["custrecord_cseg_tsa_relatedpar_n101","anyof",offsetting_unit]
-                      ],
-            columns:  [
-              Search.createColumn({ name: "internalid", label: "internalid" })
-            ]
-          });
-          var rp_unit_ok=false;
-          customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
-            console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
-            rp_unit_ok=true;
-          });
-          if(!rp_unit_ok){
-              alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_OFFS_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
-              return false;
-          }
-      }
-      
-// ******** End - Check Offsetting Related party and Unit *********
-  
-  
   return true;
 }
   
@@ -358,12 +291,115 @@ function lineInit(context,pageinit){
   
 }
 
+//************************* FIELD CHANGED **************************	
+	function validateField(context)
+	{
+		try
+        {
 
+          
+          	//console.log("intraUnit : *** fieldChanged Started *** - field="+context.fieldId);
+			var currentRecord = context.currentRecord;
+          	var tsa_rel_party = currentRecord.getValue({ fieldId: "custbody_cseg_tsa_relatedpar" });
+            var unit = currentRecord.getValue({ fieldId: "class" });
+
+			console.log("validate Field : tsa_rel_party="+tsa_rel_party);
+						
+			//log.debug({title: 'fieldChanged', details: context});
+			switch (context.fieldId)
+			{
+				case "custbody_cseg_tsa_relatedpar":
+                	if(tsa_rel_party && unit) return check_relparty_unit();
+					break;
+				case "class":
+                	if(tsa_rel_party && unit) return check_relparty_unit();
+					break;                
+			}
+		}
+		catch(e)
+		{
+			console.log(e);
+			vs_lib.createErrorLog(Runtime.getCurrentScript().id, context.currentRecord.getValue({ fieldId: "id" }), e, Runtime.getCurrentUser().id, context.currentRecord.type,true);
+			Library.errorHandler('fieldChanged', e);
+		}
+      
+		function check_relparty_unit(){
+
+            //Check RelParty for Unit
+            var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
+              type: "customrecord_cseg_tsa_relatedpar",
+              filters:  [ ["internalid","anyof",tsa_rel_party],"AND",
+                         ["custrecord_cseg_tsa_relatedpar_n101","anyof",unit]
+                        ],
+              columns:  [
+                Search.createColumn({ name: "internalid", label: "internalid" })
+              ]
+            });
+            var rp_unit_ok=false;
+            customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+              console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+              rp_unit_ok=true;
+            });
+            if(!rp_unit_ok)	{
+              alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+              return false;
+            }
+
+          // ******** Check Offsetting Related party and Unit *********
+                //Call suitelet - Unit lookup
+                var suitletURL = url.resolveScript({ scriptId:'customscript_tsa_unit_rel_party_lookup', deploymentId:'customdeploy_tsa_unit_rel_party_lookup', returnExternalUrl:true, 
+                                                    params: { 'custscript_search_type_prm':"unit", 'custscript_id_prm':tsa_rel_party } 
+                                                   });
+                var response = https.get({ url: suitletURL });
+                console.log("Unit_lookup_Call response: " + JSON.stringify(response));
+                console.log("Unit_lookup_Call returned id: " + response.body);
+                var offsetting_unit=parseInt(response.body);
+
+                //Call suitelet - Related Party lookup
+                var suitletURL = url.resolveScript({ scriptId: 'customscript_tsa_unit_rel_party_lookup', deploymentId: 'customdeploy_tsa_unit_rel_party_lookup',	returnExternalUrl: true, 
+                                                    params: { 'custscript_search_type_prm': "relparty", 'custscript_id_prm': unit }
+                                                   });
+                var response = https.get({ url: suitletURL });
+                console.log("Related_Party_lookup_Call response: " + JSON.stringify(response));
+                console.log("Related_Party_lookup_Call returned id: " + response.body);
+                var offsetting_relparty=parseInt(response.body);
+
+                //Check RelParty for Unit
+                if(offsetting_relparty && offsetting_unit){
+                    var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
+                      type: "customrecord_cseg_tsa_relatedpar",
+                      filters:  [ ["internalid","anyof",offsetting_relparty],"AND",
+                                 ["custrecord_cseg_tsa_relatedpar_n101","anyof",offsetting_unit]
+                                ],
+                      columns:  [
+                        Search.createColumn({ name: "internalid", label: "internalid" })
+                      ]
+                    });
+                    var rp_unit_ok=false;
+                    customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+                      console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+                      rp_unit_ok=true;
+                    });
+                    if(!rp_unit_ok){
+                        alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_OFFS_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+                        return false;
+                    }
+                }
+
+          // ******** End - Check Offsetting Related party and Unit *********
+          return true;
+        }
+      	return true;
+	}
+
+  
 //************************* FIELD CHANGED **************************	
 	function fieldChanged(context)
 	{
 		try
         {
+
+          
           	//console.log("intraUnit : *** fieldChanged Started *** - field="+context.fieldId);
 			var currentRecord = context.currentRecord;
             var bankCashAmount = currentRecord.getValue({ fieldId: AMOUNT });
@@ -377,6 +413,10 @@ function lineInit(context,pageinit){
 			var lineCount = currentRecord.getLineCount({sublistId : LINE});
 			var debit_amount = currentRecord.getCurrentSublistValue({ sublistId : LINE, fieldId : DEBIT });
 			var credit_amount = currentRecord.getCurrentSublistValue({ sublistId : LINE, fieldId : CREDIT });
+
+          	var tsa_rel_party = currentRecord.getValue({ fieldId: "custbody_cseg_tsa_relatedpar" });
+            var unit = currentRecord.getValue({ fieldId: "class" });
+
 			console.log("fieldChanged : Transaction_type="+transaction_type+" - "+transaction_type_txt+" ,lineCount="+lineCount+" , undepositedFund="+undepositedFund);
 						
 			//log.debug({title: 'fieldChanged', details: context});
@@ -439,6 +479,13 @@ function lineInit(context,pageinit){
                 	check_shared_key_entity(context);
 					resetTransactionLines(context.currentRecord);
 					break;
+/*				case "custbody_cseg_tsa_relatedpar":
+                	if(tsa_rel_party && unit) check_relparty_unit();
+					break;
+				case "class":
+                	if(tsa_rel_party && unit) check_relparty_unit();
+					break;
+*/                
 /*				case PARTY:
 				    if(bankCashAmount && (bankAccount || undepositedFund)){
 						//relatedPartyChanged(context.currentRecord,context);
@@ -455,6 +502,72 @@ function lineInit(context,pageinit){
 			vs_lib.createErrorLog(Runtime.getCurrentScript().id, context.currentRecord.getValue({ fieldId: "id" }), e, Runtime.getCurrentUser().id, context.currentRecord.type,true);
 			Library.errorHandler('fieldChanged', e);
 		}
+      
+		function check_relparty_unit(){
+
+            //Check RelParty for Unit
+            var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
+              type: "customrecord_cseg_tsa_relatedpar",
+              filters:  [ ["internalid","anyof",tsa_rel_party],"AND",
+                         ["custrecord_cseg_tsa_relatedpar_n101","anyof",unit]
+                        ],
+              columns:  [
+                Search.createColumn({ name: "internalid", label: "internalid" })
+              ]
+            });
+            var rp_unit_ok=false;
+            customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+              console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+              rp_unit_ok=true;
+            });
+            if(!rp_unit_ok)	{
+              alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+              return false;
+            }
+
+          // ******** Check Offsetting Related party and Unit *********
+                //Call suitelet - Unit lookup
+                var suitletURL = url.resolveScript({ scriptId:'customscript_tsa_unit_rel_party_lookup', deploymentId:'customdeploy_tsa_unit_rel_party_lookup', returnExternalUrl:true, 
+                                                    params: { 'custscript_search_type_prm':"unit", 'custscript_id_prm':tsa_rel_party } 
+                                                   });
+                var response = https.get({ url: suitletURL });
+                console.log("Unit_lookup_Call response: " + JSON.stringify(response));
+                console.log("Unit_lookup_Call returned id: " + response.body);
+                var offsetting_unit=parseInt(response.body);
+
+                //Call suitelet - Related Party lookup
+                var suitletURL = url.resolveScript({ scriptId: 'customscript_tsa_unit_rel_party_lookup', deploymentId: 'customdeploy_tsa_unit_rel_party_lookup',	returnExternalUrl: true, 
+                                                    params: { 'custscript_search_type_prm': "relparty", 'custscript_id_prm': unit }
+                                                   });
+                var response = https.get({ url: suitletURL });
+                console.log("Related_Party_lookup_Call response: " + JSON.stringify(response));
+                console.log("Related_Party_lookup_Call returned id: " + response.body);
+                var offsetting_relparty=parseInt(response.body);
+
+                //Check RelParty for Unit
+                if(offsetting_relparty && offsetting_unit){
+                    var customrecord_cseg_tsa_relatedparSearchObj = Search.create({
+                      type: "customrecord_cseg_tsa_relatedpar",
+                      filters:  [ ["internalid","anyof",offsetting_relparty],"AND",
+                                 ["custrecord_cseg_tsa_relatedpar_n101","anyof",offsetting_unit]
+                                ],
+                      columns:  [
+                        Search.createColumn({ name: "internalid", label: "internalid" })
+                      ]
+                    });
+                    var rp_unit_ok=false;
+                    customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
+                      console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+                      rp_unit_ok=true;
+                    });
+                    if(!rp_unit_ok){
+                        alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_OFFS_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+                        return false;
+                    }
+                }
+
+          // ******** End - Check Offsetting Related party and Unit *********          
+        }
 	}
   
 	//***************** Check            
@@ -1596,6 +1709,7 @@ function setExpenseLines(currentRecord, revAccount, offsetAccountIs,context)
 	
 	return {
 		fieldChanged : fieldChanged,
+      	validateField: validateField,
 		saveRecord	 : saveRecord,
 		lineInit	 : lineInit,
       	postSourcing : postSourcing,
