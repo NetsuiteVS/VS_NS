@@ -141,7 +141,7 @@ function(format, serverWidget, search, record, runtime, task, vs_lib) {
                var newStatus = scriptContext.newRecord.getValue(STATUS);
                log.debug('','oldStatus='+oldStatus+', newStatus='+newStatus+' - OffsetJ will be created at B->C only');
 
-               if( oldStatus === 'B' && newStatus === 'C'){ // || newStatus === 'C'
+               if( (oldStatus === 'B' && newStatus === 'C') || (oldStatus === 'B' && newStatus === 'E') ){ // || newStatus === 'C'
 				
 				var scriptTask = task.create({taskType: task.TaskType.SCHEDULED_SCRIPT});
 				scriptTask.scriptId = 'customscript_tsa_vs_createjrnl_intrcmpy';
