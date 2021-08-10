@@ -42,7 +42,7 @@ function(record, vs_lib, translation, search, log, url, https) {
      *
      * @since 2015.2
      */
-    function fieldChanged(context) {
+    function validateField(context) {
 
         var currentRecord = context.currentRecord;
 		
@@ -57,10 +57,10 @@ function(record, vs_lib, translation, search, log, url, https) {
             return true;
         }
 
-        console.log("Check related Party-unit *** Started *** context=" + JSON.stringify(context));
+        console.log("************ Check related Party-unit *** Started *** context=" + JSON.stringify(context));
 
       	var unit = currentRecord.getValue({fieldId: "class"});
-        var tsa_rel_party = currentRecord.getValue({fieldId: "custcol_cseg_tsa_relatedpar"});
+        var tsa_rel_party = currentRecord.getValue({fieldId: "custbody_cseg_tsa_relatedpar"});
 		if(unit && tsa_rel_party){}
 		else{
 			return true;
@@ -85,7 +85,7 @@ function(record, vs_lib, translation, search, log, url, https) {
         });
         var rp_unit_ok=false;
         customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
-          console.log("Check related Party-unit - related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+          console.log("****************** Check related Party-unit - related party unit check is ok: "+result.getValue({ name: 'internalid' }));
           rp_unit_ok=true;
         });
 		
@@ -126,11 +126,12 @@ function(record, vs_lib, translation, search, log, url, https) {
           });
           var rp_unit_ok=false;
           customrecord_cseg_tsa_relatedparSearchObj.run().each(function (result) {
-            console.log("related party unit check is ok: "+result.getValue({ name: 'internalid' }));
+            console.log("************************ related party unit check is ok: "+result.getValue({ name: 'internalid' }));
             rp_unit_ok=true;
           });
           if(!rp_unit_ok){
               alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_OFFS_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
+              currentRecord.setValue({fieldId: context.fieldId, value: null});
               return false;
           }
       }
@@ -169,11 +170,11 @@ function(record, vs_lib, translation, search, log, url, https) {
 
     return {
         //pageInit: pageInit,
-        fieldChanged: fieldChanged
+        //fieldChanged: fieldChanged
         //postSourcing: postSourcing
         //sublistChanged: sublistChanged,
         //lineInit: lineInit,
-        //validateField: validateField
+        validateField: validateField
         //validateLine: validateLine
         //validateInsert: validateInsert,
         //validateDelete: validateDelete,
