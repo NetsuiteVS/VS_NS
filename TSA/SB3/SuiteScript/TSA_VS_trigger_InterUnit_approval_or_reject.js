@@ -52,8 +52,8 @@ define(['N/error', 'N/record', 'N/search', 'N/runtime'],
 				var txn = record.load({ type: "customtransaction_tsa_unit_intracompany", id: linked_txn_id, isDynamic: false });              
 				var status=txn.getValue("transtatus");
 				if(status=="E" || 1==1){
-					if(next_status="approve") txn.setValue({ fieldId: "transtatus", value: "C", ignoreFieldChange: true, fireSlavingSync: false });
-					if(next_status="reject") txn.setValue({ fieldId: "transtatus", value: "D", ignoreFieldChange: true, fireSlavingSync: false });
+					if(next_status=="approve") txn.setValue({ fieldId: "transtatus", value: "C", ignoreFieldChange: true, fireSlavingSync: false });
+					if(next_status=="reject") txn.setValue({ fieldId: "transtatus", value: "D", ignoreFieldChange: true, fireSlavingSync: false });
 					txn.save();
 				}
 				
