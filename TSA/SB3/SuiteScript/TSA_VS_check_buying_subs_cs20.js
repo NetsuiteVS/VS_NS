@@ -354,55 +354,26 @@ define(['N/url', 'N/log', 'N/http', 'N/https', 'N/search', 'N/runtime', 'N/recor
                     console.log("check_buying_subs::validateField Started. FieldId=" + scriptContext.fieldId);
 
                     var currentRecord = scriptContext.currentRecord;
-                    var customerId = currentRecord.getValue({ fieldId: "entity" });
                     var isInterUnit = currentRecord.getValue({ fieldId: "custbody_tsa_inter_unit" });
-                    var isInactive = false;
-                    var supplierId;
+                    var supplierId = currentRecord.getValue({ fieldId: "custbody_offset_entity" });
+                    var supplierText = currentRecord.getText({ fieldId: "custbody_offset_entity" });
 
-                    console.log("check_buying_subs::validateField isInterUnit=" + isInterUnit + ", customerId=" + customerId);
+                    console.log("check_buying_subs::validateField isInterUnit=" + isInterUnit + ", supplierId=" + supplierId + ", supplierText=" + supplierText);
 
-                    if (!customerId || !isInterUnit) {
+                    if (!supplierId || !isInterUnit) {
                         return true;
                     }
 
-                    //Get customer shared key
-                    var customerSharedKey = search.lookupFields({ type: 'customer', id: customerId, columns: 'custentity_tsa_iu_shared_key_entity' }).custentity_tsa_iu_shared_key_entity;
-                    console.log("check_buying_subs::validateField customerSharedKey=" + JSON.stringify(customerSharedKey));
+                    var isInactive = search.lookupFields({ type: record.Type.VENDOR, id: supplierId, columns: 'isinactive' }).isinactive;
+                    console.log("check_buying_subs::validateField isInactive=" + JSON.stringify(isInactive));
 
-                    if (customerSharedKey.length > 0) {
-
-                        console.log("check_buying_subs::validateField customerSharedKey=" + customerSharedKey[0].value);
-
-                        var entitySearchObj = search.create({
-                            type: "entity",
-                            filters: [
-                                ["custentity_tsa_iu_shared_key_entity", "anyof", customerSharedKey[0].value],
-                                "AND", ["type", "anyof", "Vendor"]
-                            ],
-                            columns: [
-                                search.createColumn({ name: "isinactive", label: "Inactive" }),
-                                search.createColumn({ name: "entityid" })
-                            ]
-                        });
-                        var searchResultCount = entitySearchObj.runPaged().count;
-                        console.log("check_buying_subs::validateField searchResultCount=" + searchResultCount);
-                        entitySearchObj.run().each(function (result) {
-                            isInactive = result.getValue({ name: "isinactive" });
-                            supplierId = result.getValue({ name: "entityid" });
-                            console.log("check_buying_subs::validateField supplierId=" + supplierId);
-                            return false;
-                        });
-
-                        console.log("check_buying_subs::validateField isInactive=" + isInactive);
-
-                        if (isInactive) {
-                            var alertText = translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_SUPPLIER_INACTIVE', locale: translation.Locale.CURRENT })();
-                            alert(alertText + " " + supplierId);
-                            currentRecord.setValue({ fieldId: "entity", value: null});
-                        }
+                    if (isInactive) {
+                        var alertText = translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_SUPPLIER_INACTIVE', locale: translation.Locale.CURRENT })();
+                        alert(alertText + " " + supplierText);
                     }
+
                     console.log("check_buying_subs::validateField Finished");
-                }                
+                }               
             }
             catch (e) {
                 console.log("check_buying_subs::validateField Error message=" + e);
