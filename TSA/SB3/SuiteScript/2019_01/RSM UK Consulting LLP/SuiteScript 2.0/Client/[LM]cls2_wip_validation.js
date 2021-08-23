@@ -164,7 +164,11 @@ define(['N/https','N/search', 'N/runtime','N/translation'], function(https, sear
       	var tmp_category;
 
 		tmp_value = currentRecord.getCurrentSublistValue({ sublistId : scriptContext.sublistId, fieldId : "account" });
-		if(!tmp_value) tmp_value = currentRecord.getCurrentSublistValue({ sublistId : scriptContext.sublistId, fieldId : "expenseaccount" });			
+      	var acc_field="account";
+		if(!tmp_value) {
+          	tmp_value = currentRecord.getCurrentSublistValue({ sublistId : scriptContext.sublistId, fieldId : "expenseaccount" });
+          	acc_field="expenseaccount";
+        }
 		
 		if(scriptContext.sublistId=="expense"){
 			console.log("wip check - sublist is expense");
@@ -205,10 +209,7 @@ define(['N/https','N/search', 'N/runtime','N/translation'], function(https, sear
 		}
 		
 		console.log("wip check - after expense and item sublist checks");
-		
-		var acc_field="account";
-		if(scriptContext.sublistId=="expense") acc_field="expenseaccount";
-		
+				
     	postObject.accountId = currentRecord.getCurrentSublistValue({
 			sublistId : scriptContext.sublistId,
 			fieldId : acc_field
