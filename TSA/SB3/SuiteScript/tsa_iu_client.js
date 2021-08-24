@@ -1,8 +1,10 @@
 /**********************************************************************************************************
- * Name:			Create journal ([rsm]_cl_journal.js)
+ * Name:			tsa_iu_client.js
  * 
  * API Version:		2.0
  * 
+ * remark (reason why the solution is not a simple validateField) 
+ * Modified the customscript_tsa_iu_client (Cash Sales & Sales Invoice) script to run the checks at fieldChange and saveRecord instead of validateField. (remark: the previous validateField function should have prevented the user from saving too since the user couldn't leave the field with an invalid entry populated.)
  ***********************************************************************************************************/
 /**
  * @NApiVersion 2.x
@@ -21,6 +23,8 @@ function(record, vs_lib, translation, search, log, url, https) {
      *
      * @since 2015.2
      */
+  	var onSave=0;
+  
     function pageInit(scriptContext) {
 
         try {
@@ -46,7 +50,7 @@ function(record, vs_lib, translation, search, log, url, https) {
 
         var currentRecord = context.currentRecord;
 		
-		if(context.fieldId=="class" || context.fieldId=="custbody_cseg_tsa_relatedpar" || context.fieldId=="custbody_tsa_inter_unit" ){}
+		if(context.fieldId=="class" || context.fieldId=="custbody_cseg_tsa_relatedpar" || context.fieldId=="custbody_tsa_inter_unit" || onSave==1 ){}
 		else{
 			return true;
 		}
@@ -131,7 +135,7 @@ function(record, vs_lib, translation, search, log, url, https) {
           });
           if(!rp_unit_ok){
               alert(translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_OFFS_RELPARTY_UNIT', locale: translation.Locale.CURRENT })());
-              currentRecord.setValue({fieldId: "custbody_cseg_tsa_relatedpar", value: null});
+              //currentRecord.setValue({fieldId: "custbody_cseg_tsa_relatedpar", value: null});
               return false;
           }
       }
@@ -167,18 +171,22 @@ function(record, vs_lib, translation, search, log, url, https) {
 		
     }
 
+  function saveRecord(context) {
+    onSave=1;
+    return validateField(context);
+  }
 
     return {
         //pageInit: pageInit,
-        //fieldChanged: fieldChanged
+        fieldChanged: validateField,
         //postSourcing: postSourcing
         //sublistChanged: sublistChanged,
         //lineInit: lineInit,
-        validateField: validateField
+        //validateField: validateField,
         //validateLine: validateLine
         //validateInsert: validateInsert,
         //validateDelete: validateDelete,
-        //saveRecord: saveRecord
+        saveRecord: saveRecord
     };
     
 });
