@@ -22,6 +22,8 @@ define(['N/url', 'N/log', 'N/http', 'N/https', 'N/search', 'N/runtime', 'N/recor
 
     function (url, log, http, https, search, runtime, record, translation) {
 
+  		var onSave=0;
+  
         // **************************** PAGE INIT *************************
         function pageInit(context) {
             console.log("interUnit pageinit - call lineInit")
@@ -349,7 +351,7 @@ define(['N/url', 'N/log', 'N/http', 'N/https', 'N/search', 'N/runtime', 'N/recor
 
             try {
                 
-                if (scriptContext.fieldId == "entity" || scriptContext.fieldId == "custbody_tsa_inter_unit") {
+                if (scriptContext.fieldId == "entity" || scriptContext.fieldId == "custbody_tsa_inter_unit" || onSave==1 ) {
 
                     console.log("check_buying_subs::validateField Started. FieldId=" + scriptContext.fieldId);
 
@@ -370,6 +372,8 @@ define(['N/url', 'N/log', 'N/http', 'N/https', 'N/search', 'N/runtime', 'N/recor
                     if (isInactive) {
                         var alertText = translation.get({ collection: 'custcollection__tsa_collection_01', key: 'MSG_SUPPLIER_INACTIVE', locale: translation.Locale.CURRENT })();
                         alert(alertText + " " + supplierText);
+                      	onSave=0;
+                      	return false;
                     }
 
                     console.log("check_buying_subs::validateField Finished");
@@ -384,6 +388,11 @@ define(['N/url', 'N/log', 'N/http', 'N/https', 'N/search', 'N/runtime', 'N/recor
             return true;
         }
 
+	    function saveRecord(context) {
+    		onSave=1;
+		    return validateField(context);
+  		}
+
         //#endregion
 
         return {
@@ -391,7 +400,8 @@ define(['N/url', 'N/log', 'N/http', 'N/https', 'N/search', 'N/runtime', 'N/recor
             pageInit: pageInit,
             postSourcing: postSourcing,
             fieldChanged: fieldChanged,
-            validateField: validateField
+            validateField: validateField,
+            saveRecord: saveRecord
         };
     });
 
