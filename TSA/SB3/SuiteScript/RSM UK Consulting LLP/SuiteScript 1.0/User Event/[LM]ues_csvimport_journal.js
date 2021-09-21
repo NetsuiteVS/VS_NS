@@ -36,79 +36,228 @@ var ctx = nlapiGetContext();
  * @returns {Void}
  */
 function onCsvJournalBeforeSubmit(type) {
-  
-  		//if (vs_lib10.userSubsidiaryIsIHQ()) return true;
-		
-  		var ouu_txn = nlapiGetFieldValue('custbody_tsa_oou_txn');
-		if (ctx.getExecutionContext() == "csvimport" || ouu_txn=="T"){ }
-        else{
-          return;
-		}
-      
-        try{
-            var subs_reserve_journal_creation_enabled = nlapiGetFieldValue('custbody_subs_reserve_journal_setting');
-            nlapiLogExecution("debug","onCSV Journal BeforeSubmit","Reserve checking: id="+nlapiGetRecordId()+" , subs reserve T journal enabled="+subs_reserve_journal_creation_enabled);
-            if(subs_reserve_journal_creation_enabled!="T") {
-                nlapiLogExecution("debug","onCSV Cash Sale BeforeSubmit","Reserve checking: Subsidiary Reserve Creation and Checking was Disabled - Returning with YES");
-                return true;
+
+    //if (vs_lib10.userSubsidiaryIsIHQ()) return true;
+    var ouu_txn = nlapiGetFieldValue('custbody_tsa_oou_txn');
+    if (ctx.getExecutionContext() == "csvimport" || ouu_txn == "T") { }
+    else {
+        return;
+    }
+
+    try {
+        var subs_reserve_journal_creation_enabled = nlapiGetFieldValue('custbody_subs_reserve_journal_setting');
+        nlapiLogExecution("debug", "onCSV Journal BeforeSubmit", "Reserve checking: id=" + nlapiGetRecordId() + " , subs reserve T journal enabled=" + subs_reserve_journal_creation_enabled);
+        if (subs_reserve_journal_creation_enabled != "T") {
+            nlapiLogExecution("debug", "onCSV Cash Sale BeforeSubmit", "Reserve checking: Subsidiary Reserve Creation and Checking was Disabled - Returning with YES");
+            return true;
+        }
+    }
+    catch (e) {
+        nlapiLogExecution("error", "onCSV Cash Sale BeforeSubmit", JSON.stringify(e));
+    }
+
+    if (type != "create" && type != "edit" && type != "xedit") {
+        return;
+    }
+    var linecount = nlapiGetLineItemCount("line");
+
+    var postObjectArray = [];
+
+    //Init filter arrays. 0 is a non used init value, so we don't have to check if array is empty.
+    var reserveFilterArray = ["0"];
+    var accountFilterArray = ["0"];
+    var accountTypeFilterArray = ["0"];
+    var reserveParentFilterArray = ["@NONE@"];
+    var sideFilterArray = ["0"];
+
+    //Init postObjects
+    for (var linenum = 1; linenum <= linecount; linenum++) {
+
+        nlapiSelectLineItem("line", linenum);
+        var account = nlapiGetCurrentLineItemValue("line", "account");
+        var credit = parseFloat(nlapiGetCurrentLineItemValue("line", "credit"));
+        var reserve = nlapiGetCurrentLineItemValue("line", "custcol_cseg_tsa_fundreserv");
+        //nlapiLogExecution("DEBUG", "reserve", JSON.stringify(reserve));
+
+        var postObject = {
+            accountId: account,
+            accountType: null,
+            fxAccount: null,
+            isValid: false,
+            reserve: reserve ? reserve : "@NONE@",
+            reserveParent: null,
+            recordType: "Journal",
+            //internalType: "1",
+            side: (function () { return (credit > 0) ? "1" : "2"; }()),
+            mappingResultIds: []
+        };
+
+        if (reserve) {
+            reserveFilterArray.push(reserve);
+        }
+        accountFilterArray.push(postObject.accountId);
+        postObjectArray.push(postObject);
+    }
+
+    //Get reserve
+    nlapiLogExecution("DEBUG", "reserveFilterArray", JSON.stringify(reserveFilterArray));
+    var reserveParentSearch = nlapiSearchRecord("customrecord_cseg_tsa_fundreserv", null,
+        [["internalid", "anyof", reserveFilterArray]],
+        [new nlobjSearchColumn("parent")]
+    );
+
+    for (var i = 0; reserveParentSearch != null && i < reserveParentSearch.length; i++) {
+
+        var searchresult = reserveParentSearch[i];
+        var reserveInternalId = reserveParentSearch[i].getId();
+        var columns = searchresult.getAllColumns();
+
+        for (var j = 0; j < postObjectArray.length; j++) {
+            if (postObjectArray[j].reserve == reserveInternalId) {
+                postObjectArray[j].reserveParent = searchresult.getValue(columns[0]);
             }
         }
-        catch(e){
-            nlapiLogExecution("error","onCSV Cash Sale BeforeSubmit", JSON.stringify(e) );
+    }
+
+    var results = nlapiSearchRecord("account", null,
+        [new nlobjSearchFilter("internalid", null, "anyof", accountFilterArray)],
+        [new nlobjSearchColumn("type"), new nlobjSearchColumn("custrecord_fam_account_showinfixedasset")]);
+    nlapiLogExecution("DEBUG", "results", JSON.stringify(results));
+
+    //Set fxAccount, accountType and isValid properties
+    for (var i = 0; results != null && i < results.length; i++) {
+
+        //Find the postObject based on internalId
+        var searchresult = results[i];
+        var internalId = results[i].getId();
+        var columns = searchresult.getAllColumns();
+
+        //nlapiLogExecution("DEBUG", "internalId", internalId);
+        var currentPostObject;
+        for (var j = 0; j < postObjectArray.length; j++) {
+            if (postObjectArray[j].accountId == internalId) {
+                currentPostObject = postObjectArray[j];
+
+                currentPostObject.fxAccount = searchresult.getValue(columns[1]);
+                var accountType = searchresult.getValue(columns[0]);
+                currentPostObject.accountType = "";
+                for (var x in accountsReference) {
+                    if (accountType === accountsReference[x].text_type) {
+                        currentPostObject.accountType = accountsReference[x].value;
+                        break;
+                    }
+                }
+
+                currentPostObject.isValid = isValid(currentPostObject);
+                //nlapiLogExecution("DEBUG", "currentPostObject", JSON.stringify(currentPostObject));
+            }
+        }
+    }
+
+    //Create filter arrays
+    accountFilterArray = ["0"];//Set to default
+    for (var i = 0; i < postObjectArray.length; i++) {
+
+        if (postObjectArray[i].isValid) {
+            if (accountFilterArray.indexOf(postObjectArray[i].accountId) == -1) accountFilterArray.push(postObjectArray[i].accountId);
+            if (postObjectArray[i].reserveParent && reserveParentFilterArray.indexOf(postObjectArray[i].reserveParent) == -1) reserveParentFilterArray.push(postObjectArray[i].reserveParent);
+            if (sideFilterArray.indexOf(postObjectArray[i].side) == -1) sideFilterArray.push(postObjectArray[i].side);
+            if (accountTypeFilterArray.indexOf(postObjectArray[i].accountType) == -1) accountTypeFilterArray.push(postObjectArray[i].accountType);
+        }
+    }
+
+    //Create search filter
+    var searchFilters = [
+        [["custrecord_wip_account", "anyof", accountFilterArray], "OR", ["custrecord_wip_all_account", "is", "T"]], "AND",
+        ["isinactive", "is", "F"], "AND",
+        ["custrecord_wip_transaction_type", "anyof", "1"], "AND",
+        ["custrecord_wip_account_type", "anyof", accountTypeFilterArray], "AND",
+        ["custrecord_wip_reserve_parent", "anyof", reserveParentFilterArray], "AND",
+        ["custrecord_wip_side", "anyof", sideFilterArray]
+    ];
+    nlapiLogExecution("DEBUG", "Filters", JSON.stringify(searchFilters));
+
+    var mappingResults = nlapiSearchRecord("customrecord_tsa_wip_mapping", null, searchFilters,
+        [
+            new nlobjSearchColumn("custrecord_wip_account"),
+            new nlobjSearchColumn("custrecord_wip_account_type"),
+            new nlobjSearchColumn("custrecord_wip_reserve_parent"),
+            new nlobjSearchColumn("custrecord_wip_side"),
+            new nlobjSearchColumn("custrecord_wip_all_account")
+        ]
+    );
+
+    //Create searchable mappingResult array
+    var mappingResultArray = [];
+    //nlapiLogExecution("DEBUG", "mappingResults.length", JSON.stringify(mappingResults.length));
+    nlapiLogExecution("DEBUG", "mappingResults", JSON.stringify(mappingResults));
+    for (var i = 0; mappingResults != null && i < mappingResults.length; i++) {
+
+        var searchresult = mappingResults[i];
+        var columns = searchresult.getAllColumns();
+        var mappingId = searchresult.getId();
+
+        var identifier1 = searchresult.getValue(columns[0]) + ";" + searchresult.getValue(columns[1]).split(",")[0] + ";" + searchresult.getValue(columns[2]) + ";" + searchresult.getValue(columns[3]);
+        var identifier2 = searchresult.getValue(columns[4]) + ";" + searchresult.getValue(columns[1]).split(",")[0] + ";" + searchresult.getValue(columns[2]) + ";" + searchresult.getValue(columns[3]);
+        //nlapiLogExecution("DEBUG", "identifier1", JSON.stringify(identifier1));
+        //nlapiLogExecution("DEBUG", "identifier2", JSON.stringify(identifier2));
+        if (!mappingResultArray.hasOwnProperty(identifier1)) {
+            mappingResultArray[identifier1] = [];
+        }
+        if (!mappingResultArray.hasOwnProperty(identifier2)) {
+            mappingResultArray[identifier2] = [];
         }
 
-		if(type != "create" && type != "edit" && type != "xedit"){
-			return;
-		}
-		var linecount = nlapiGetLineItemCount("line");
-		for (var linenum = 1; linenum <= linecount; linenum++) {
+        mappingResultArray[identifier1].push(mappingId);
+        mappingResultArray[identifier2].push(mappingId);
+        //nlapiLogExecution("DEBUG", "mappingResultArray[identifier1]", mappingResultArray[identifier1]);
+        //nlapiLogExecution("DEBUG", "mappingResultArray[identifier2]", mappingResultArray[identifier2]);
+    }
 
-			nlapiSelectLineItem("line", linenum);
-			var account = nlapiGetCurrentLineItemValue("line", "account");
-			var credit = parseFloat(nlapiGetCurrentLineItemValue("line", "credit"));
-			var reserve = nlapiGetCurrentLineItemValue("line", "custcol_cseg_tsa_fundreserv");
-			var reserveParent = "";
-			if(reserve){
-				reserveParent = nlapiLookupField(
-					"customrecord_cseg_tsa_fundreserv", reserve,
-					"parent", false);
-			}
+    for (var i = 0; i < postObjectArray.length; i++) {
 
-			var postObject = {
-				accountId : account,
-				reserve : reserveParent,
-				recordType : "Journal",
-				internalType : "1",
-				side : (function(){
-					return (credit > 0)? "1" : "2";
-				}())
-			};
-			/**
-			 * Request simulation object to call the Suitelet code
-			 */
-			var sletRequest = new SuiteletRequest(postObject);
+        var postObjectIdentifier1 = postObjectArray[i].accountId + ";" + postObjectArray[i].accountType + ";" + postObjectArray[i].reserveParent + ";" + postObjectArray[i].side;
+        var postObjectIdentifier2 = "T" + ";" + postObjectArray[i].accountType + ";" + postObjectArray[i].reserveParent + ";" + postObjectArray[i].side;
+        //nlapiLogExecution("DEBUG", "postObjectIdentifier1", JSON.stringify(postObjectIdentifier1));
+        //nlapiLogExecution("DEBUG", "postObjectIdentifier2", JSON.stringify(postObjectIdentifier2));
 
-			// CallBack object to capture the response from Suitelet code
-			var SuiteletResponse = {};
-			// Callback
-			SuiteletResponse.write = function(response) {
-				var objLine = JSON.parse(response);
-				// If WIP mapping error then copy error to both the line and
-				// body error fields
-				if (objLine.error) {
-					throw objLine.error;
-				} else if (objLine.id) {
-					// Update WIP Mapping record id on journal line
-					nlapiSetCurrentLineItemValue("line",
-							"custcol_tsa_wip_mapping", objLine.id);
-					nlapiSetCurrentLineItemValue("item",
-							"custcol_tsa_wip_mapping_error", "");
-				}
-				nlapiCommitLineItem("line");
-			}
-			// call post function on WIP Server Suitelet
-			post(sletRequest, SuiteletResponse);
-		}
+        if (mappingResultArray.hasOwnProperty(postObjectIdentifier1)) {
+            postObjectArray[i].mappingResultIds = mappingResultArray[postObjectIdentifier1];
+            //nlapiLogExecution("DEBUG", "mappingResultArray[postObjectIdentifier1]", mappingResultArray[postObjectIdentifier1]);
+        }
+        else if (mappingResultArray.hasOwnProperty(postObjectIdentifier2)) {
+            postObjectArray[i].mappingResultIds = mappingResultArray[postObjectIdentifier2];
+            //nlapiLogExecution("DEBUG", "mappingResultArray[postObjectIdentifier2]", mappingResultArray[postObjectIdentifier2]);
+        }
+        //nlapiLogExecution("DEBUG", "postObjectArray[i].mappingResultIds", postObjectArray[i].mappingResultIds);
+    }
+
+    for (var i = 0; i < postObjectArray.length; i++) {
+
+        /**
+         * Request simulation object to call the Suitelet code
+         */
+        var sletRequest = new SuiteletRequest(postObjectArray[i]);
+
+        // CallBack object to capture the response from Suitelet code
+        var SuiteletResponse = {};
+        // Callback
+        SuiteletResponse.write = function (response) {
+            var objLine = JSON.parse(response);
+            // If WIP mapping error then copy error to both the line and
+            // body error fields
+            if (objLine.error) {
+                throw objLine.error;
+            } else if (objLine.id) {
+                // Update WIP Mapping record id on journal line
+                nlapiSetCurrentLineItemValue("line", "custcol_tsa_wip_mapping", objLine.id);
+                nlapiSetCurrentLineItemValue("line", "custcol_tsa_wip_mapping_error", "");
+            }
+            nlapiCommitLineItem("line");
+        }
+        // call post function on WIP Server Suitelet
+        post(sletRequest, SuiteletResponse);
+    }
 }
 
 
@@ -128,7 +277,6 @@ SuiteletRequest.prototype.getBody = function(){
 };
 
 
-
 /**
  * @param {nlobjRequest} request Request object
  * @param {nlobjResponse} response Response object
@@ -138,7 +286,7 @@ function post(request, response){
 	try{
 		var objLine = new ObjLine();
 		var returnObj = {};
-		nlapiLogExecution("DEBUG", "Input", request.getBody());
+		//nlapiLogExecution("DEBUG", "Input", request.getBody());
 		try{
 			objLine = JSON.parse(request.getBody());
 		}
@@ -146,62 +294,16 @@ function post(request, response){
 			throw nlapiCreateError("USER_ERROR","Malformed Line Input.", true);
 		}
 
-		if(objLine.item){
-			// Sale Transactions look at income account 
-			if(["10","7","5", "29"].indexOf(objLine.internalType) > -1){
-				objLine.accountId = nlapiLookupField("item", objLine.item, "incomeaccount", false);
-			}
-			else if(objLine.item){
-			// Purchase Transactions look at asset account - the next 3 lines added by RSM as part of INC-1413 fix - remark by VS
-                objLine.accountId = nlapiLookupField("item", objLine.item, "expenseaccount", false); 
-			} 
-			else if(objLine.item){ //fix ends
-			// Purchase Transactions look at asset account 
-                objLine.accountId = nlapiLookupField("item", objLine.item, "assetaccount", false);
-			}
-		}
-		else if(objLine.category){
-			objLine.accountId = nlapiLookupField("expensecategory", objLine.category, "account", false);
-		}
+        if (!objLine.isValid) {
+            // allow transaction line to be saved
+            returnObj.id = "";
+            return response.write(JSON.stringify(returnObj));
+        }
 
-		if(!objLine.accountId){
-			throw nlapiCreateError("USER_ERROR","No Income/Asset account found on Item or Expense Category.", true);
-		}
-
-		// Get the account type
-		objLine.account = getAccount(objLine.accountId);
-
-		if(!isValid(objLine)){
-			// allow transaction line to be saved
-			returnObj.id = "";
-			return response.write(JSON.stringify(returnObj));
-		}
-
-		var searchFilters = [[ ["custrecord_wip_account", "anyof", objLine.accountId], "OR",
-		                       ["custrecord_wip_all_account", "is", "T"]
-		                      ],"AND",
-							  ["isinactive","is","F"],"AND",
-							  ["custrecord_wip_transaction_type","anyof",objLine.internalType],"AND",
-							["custrecord_wip_account_type","anyof",objLine.account.type ],"AND",
-							["custrecord_wip_reserve_parent","anyof", objLine.reserve]
-							];
-
-		if(objLine.side){
-			searchFilters.push("AND");
-			searchFilters.push(["custrecord_wip_side","anyof", objLine.side]);
-		}
-
-		if(objLine.fxAsset){
-			searchFilters.push("AND");
-			searchFilters.push(["custrecord_wip_fixed_asset","anyof", objLine.account.fxacc]);
-		}
-
-		nlapiLogExecution("DEBUG", "Filters", JSON.stringify(searchFilters));
-		var mappingResults = nlapiSearchRecord("customrecord_tsa_wip_mapping", null, searchFilters, null);
-		if(mappingResults){
-			if(mappingResults.length > 1)
+        if (objLine.mappingResultIds.length > 0) {
+            if (objLine.mappingResultIds.length > 1)
 				throw nlapiCreateError("MULIPLE_MAPPING", "MULIPLE_MAPPING", true);
-			returnObj = {id : mappingResults[0].id};
+            returnObj = { id: objLine.mappingResultIds[0] };
 		}else{
 			throw nlapiCreateError("NO_MAPPING", "NO_MAPPING", true);
 		}
@@ -211,58 +313,36 @@ function post(request, response){
 	}
 }
 
-/**
- * Search account record and return with required fields
- * @param {string} id
- */
-function getAccount(id){
-	var results = nlapiSearchRecord("account", null,
-			[new nlobjSearchFilter("internalid", null, "anyof", id)],
-			[new nlobjSearchColumn("type"), new nlobjSearchColumn("custrecord_fam_account_showinfixedasset")]);
-
-  var accountType = results[0].getValue("type");
-  var accountTypeId = "";
-  for(var x in accountsReference){
-      if(accountType === accountsReference[x].text_type){
-        accountTypeId = accountsReference[x].value;
-        break;
-      }
-  }
-
-	return {
-		type : accountTypeId,
-		fxacc : results[0].getValue("custrecord_fam_account_showinfixedasset")
-	};
+var ObjLine = function () {
+    this.accountId = "";
+    this.accountType = "";
+    this.fxAccount = null;
+    this.isValid = false;
+    this.reserve = "";
+    this.reserveParent = null;
+    this.side = null;
+    this.mappingResultIds = [];
 }
 
-var ObjLine = function(){
-	this.accountId = "";
-	this.account = {};
-	this.reserve = "";
-	this.side = null;
-}
 
 /**
  * 
  * @param {ObjLine} objLine
  */
-var isValid = function(lineObject){
-	var valid = false;
-	// Reserve Segment NOT Blank
-	if(lineObject.reserve){
-		valid = true;
-	}
-	// Reserve Segment is Blank
-	else if(lineObject.internalType == "20" || lineObject.internalType == "17" || lineObject.internalType == "1"){
-		if(lineObject.account.type == "4" && lineObject.account.fxacc == "1"){
-			// 1 = Asset Account
-			if(!lineObject.reserve){
-				lineObject.reserve = "@NONE@";
-			}
-			valid = true;
-		}
-	}
-	return valid;
+var isValid = function (lineObject) {
+    var valid = false;
+    // Reserve Segment NOT Blank
+    if (lineObject.reserveParent) {
+        valid = true;
+    }
+    // Reserve Segment is Blank
+    else if (lineObject.accountType == "4" && lineObject.fxAccount == "1") { //1=asset account - SHOW IN FIXED ASSETS MANAGEMENT
+        if (!lineObject.reserveParent) {
+            lineObject.reserveParent = "@NONE@";
+        }
+        valid = true;
+    }
+    return valid;
 }
 
 var accountsReference = [
