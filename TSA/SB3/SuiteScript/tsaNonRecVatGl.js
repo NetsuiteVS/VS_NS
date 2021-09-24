@@ -90,6 +90,8 @@ function processSublist(sublist, transaction, standardLines, customLines, nonRec
     nlapiLogExecution('debug', 'getLines', 'TXN lines count(' + sublist + ') =' + tr_linecount);
     for (var i = 1; i <= tr_linecount; i++) { // !!!! This is nlobjRecord, first line is 1 in suitescript 1.0 !!!
         var account = transaction.getLineItemValue(sublist, "account", i);
+      	if(!account) account = transaction.getLineItemValue(sublist, "expenseaccount", i);
+      	if(!account) account = transaction.getLineItemValue(sublist, "custcol_tsa_item_exp_account", i);      
         var taxItemId = transaction.getLineItemValue(sublist, "taxcode", i);
         var tax1amt = transaction.getLineItemValue(sublist, "tax1amt", i);
         var amount = transaction.getLineItemValue(sublist, "amount", i);        
@@ -107,9 +109,9 @@ function processSublist(sublist, transaction, standardLines, customLines, nonRec
         }
         else {
             class_ = transaction.getFieldValue("class");
-            if (rec_type == "vendorbill") {
-                location = transaction.getFieldValue("location");
-            }
+            //if (rec_type == "vendorbill"){
+            location = transaction.getFieldValue("location");
+            //}
         }
         var department = transaction.getLineItemValue(sublist, "department", i);
         var memo = transaction.getLineItemValue(sublist, "memo", i);
