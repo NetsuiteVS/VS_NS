@@ -46,7 +46,7 @@ define(['N/error', 'N/record', 'N/search', 'N/runtime'],
 				var document_id=newRecord.getValue('transactionnumber');
 				var tranid=newRecord.getValue('tranid');
               	var id=newRecord.id;
-
+              	var linked_txn_id=newRecord.getValue('custbody_linked_ic_trans');
 
 				var transactionSearchObj = search.create({
 				   type: "transaction",
@@ -54,7 +54,7 @@ define(['N/error', 'N/record', 'N/search', 'N/runtime'],
 				   [
 					  ["mainline","is","T"], 
 					  "AND", 
-					  ["internalidnumber","equalto",id]
+					  ["internalidnumber","equalto",linked_txn_id]
 				   ],
 				   columns:
 				   [
@@ -67,6 +67,7 @@ define(['N/error', 'N/record', 'N/search', 'N/runtime'],
 				var txn_type_srch="";
 				var searchResultCount = transactionSearchObj.runPaged().count;
 				log.debug("transactionSearchObj result count",searchResultCount);
+
 				transactionSearchObj.run().each(function(result){
 				   txn_type_srch=result.getText("type");
 				   var tranid=result.getValue("tranid");
@@ -74,10 +75,9 @@ define(['N/error', 'N/record', 'N/search', 'N/runtime'],
 				   return true;
 				});
 
-				var txn_type="journalentry";
+				var txn_type="journal";
 				if(txn_type_srch=="TSA Interunit") txn_type="customtransaction_tsa_unit_intracompany";
 				
-				var linked_txn_id=newRecord.getValue('custbody_linked_ic_trans');
 				var next_status=runtime.getCurrentScript().getParameter({ name: "custscript_next_status" });
 				if(linked_txn_id){
                     var txn = record.load({ type: txn_type, id: linked_txn_id, isDynamic: false });
@@ -88,12 +88,12 @@ define(['N/error', 'N/record', 'N/search', 'N/runtime'],
                         if(next_status=="approve"){
 							log.debug("","approve");
 							if(txn_type=="customtransaction_tsa_unit_intracompany") txn.setValue({ fieldId: "transtatus", value: "C", ignoreFieldChange: true, fireSlavingSync: false });
-							if(txn_type=="journalentry") txn.setValue({ fieldId: "approvalstatus", value: "2", ignoreFieldChange: true, fireSlavingSync: false });
+							if(txn_type=="journal") txn.setValue({ fieldId: "approvalstatus", value: "2", ignoreFieldChange: true, fireSlavingSync: false });
 						}
                         if(next_status=="reject"){
 							log.debug("","reject");
 							if(txn_type=="customtransaction_tsa_unit_intracompany") txn.setValue({ fieldId: "transtatus", value: "D", ignoreFieldChange: true, fireSlavingSync: false });
-							if(txn_type=="journalentry") txn.setValue({ fieldId: "approvalstatus", value: "3", ignoreFieldChange: true, fireSlavingSync: false });
+							if(txn_type=="journal") txn.setValue({ fieldId: "approvalstatus", value: "3", ignoreFieldChange: true, fireSlavingSync: false });
 						}
                         txn.save();
                     }
